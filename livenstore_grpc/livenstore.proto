@@ -6,6 +6,7 @@ package livenstore_grpc;
 
 service Livenstore {
   rpc Publish (PublishEventRequest) returns (PublishEventReply) {}
+  rpc EventByID (EventByIDRequest) returns (EventResponse) {}
 }
 
 // The request message containing the user's name.
@@ -17,4 +18,19 @@ message PublishEventRequest {
 // The response message containing the greetings
 message PublishEventReply {
   string id = 1;
+}
+
+message EventByIDRequest {
+  string id = 1;
+}
+
+message Event {
+  string id = 1;
+  string type = 2;
+  uint64 timestamp = 3;
+  bytes data = 4;
+}
+
+message EventResponse {
+  Event event = 1;
 }

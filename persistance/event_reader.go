@@ -18,6 +18,12 @@ type EventReader struct {
 	BasePath string
 }
 
+func NewEventReader(basePath string) EventReader {
+	return EventReader{
+		BasePath: basePath,
+	}
+}
+
 func (er *EventReader) ReadEvent(eventID ulid.ULID) (*domain.Event, error) {
 	file, err := er.eventFile(eventID.String())
 	if err != nil {

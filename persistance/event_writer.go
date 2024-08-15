@@ -21,6 +21,12 @@ type EventWriter struct {
 	currentSize int64
 }
 
+func NewEventWriter(basePath string) EventWriter {
+	return EventWriter{
+		BasePath: basePath,
+	}
+}
+
 func (ew *EventWriter) WriteEvent(event domain.Event) (int64, error) {
 	file, err := ew.CurrentFile(event.ID.String())
 	if err != nil {

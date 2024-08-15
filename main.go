@@ -12,10 +12,7 @@ import (
 )
 
 func main() {
-	w := persistance.EventWriter{
-		BasePath: "data",
-	}
-	es := services.NewEventStore(w)
+	es := services.NewEventStore("data", persistance.NewEventWriter, persistance.NewEventReader)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 5001))
 	if err != nil {

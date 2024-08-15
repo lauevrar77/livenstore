@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Livenstore_Publish_FullMethodName = "/livenstore_grpc.Livenstore/Publish"
+	Livenstore_Publish_FullMethodName   = "/livenstore_grpc.Livenstore/Publish"
+	Livenstore_EventByID_FullMethodName = "/livenstore_grpc.Livenstore/EventByID"
 )
 
 // LivenstoreClient is the client API for Livenstore service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LivenstoreClient interface {
 	Publish(ctx context.Context, in *PublishEventRequest, opts ...grpc.CallOption) (*PublishEventReply, error)
+	EventByID(ctx context.Context, in *EventByIDRequest, opts ...grpc.CallOption) (*EventResponse, error)
 }
 
 type livenstoreClient struct {
@@ -47,11 +49,22 @@ func (c *livenstoreClient) Publish(ctx context.Context, in *PublishEventRequest,
 	return out, nil
 }
 
+func (c *livenstoreClient) EventByID(ctx context.Context, in *EventByIDRequest, opts ...grpc.CallOption) (*EventResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventResponse)
+	err := c.cc.Invoke(ctx, Livenstore_EventByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LivenstoreServer is the server API for Livenstore service.
 // All implementations must embed UnimplementedLivenstoreServer
 // for forward compatibility.
 type LivenstoreServer interface {
 	Publish(context.Context, *PublishEventRequest) (*PublishEventReply, error)
+	EventByID(context.Context, *EventByIDRequest) (*EventResponse, error)
 	mustEmbedUnimplementedLivenstoreServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedLivenstoreServer struct{}
 
 func (UnimplementedLivenstoreServer) Publish(context.Context, *PublishEventRequest) (*PublishEventReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
+}
+func (UnimplementedLivenstoreServer) EventByID(context.Context, *EventByIDRequest) (*EventResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EventByID not implemented")
 }
 func (UnimplementedLivenstoreServer) mustEmbedUnimplementedLivenstoreServer() {}
 func (UnimplementedLivenstoreServer) testEmbeddedByValue()                    {}
@@ -104,6 +120,24 @@ func _Livenstore_Publish_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Livenstore_EventByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EventByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LivenstoreServer).EventByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Livenstore_EventByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LivenstoreServer).EventByID(ctx, req.(*EventByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Livenstore_ServiceDesc is the grpc.ServiceDesc for Livenstore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var Livenstore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Publish",
 			Handler:    _Livenstore_Publish_Handler,
+		},
+		{
+			MethodName: "EventByID",
+			Handler:    _Livenstore_EventByID_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

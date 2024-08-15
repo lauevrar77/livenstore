@@ -28,3 +28,22 @@ func (s *Server) Publish(c context.Context, req *PublishEventRequest) (*PublishE
 	}
 	return &PublishEventReply{Id: e.ID.String()}, nil
 }
+
+func (s *Server) EventByID(c context.Context, req *EventByIDRequest) (*EventResponse, error) {
+	ulid, err := ulid.Parse(req.Id)
+	if err != nil {
+		return nil, err
+	}
+	e, err := s.ES.ReadEvent(ulid)
+	if err != nil {
+		return nil, err
+	}
+	return &EventResponse{
+		Event: &Event{
+			Id:        e.ID.String(),
+			Type:      e.Type,
+			Timestamp: e.Timestamp,
+			Data:      e.Data,
+		},
+	}, nil
+}
