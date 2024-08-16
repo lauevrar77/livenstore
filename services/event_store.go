@@ -11,6 +11,7 @@ import (
 type EventWriterFactory func(string) persistance.EventWriter
 type EventReaderFactory func(string) persistance.EventReader
 type StreamWriterFactory func(string) persistance.StreamWriter
+type StreamReaderFactory func(string) persistance.StreamReader
 
 type WriteResult struct {
 	Offset int64
@@ -18,14 +19,22 @@ type WriteResult struct {
 }
 
 type EventStore struct {
-	BasePath         string
-	Writer           persistance.EventWriter
-	WriterChan       chan domain.Event
-	WriterResultChan chan WriteResult
-	ReaderFactory    EventReaderFactory
+	BasePath            string
+	Writer              persistance.EventWriter
+	WriterChan          chan domain.Event
+	WriterResultChan    chan WriteResult
+	ReaderFactory       EventReaderFactory
+	StreamReaderFactory StreamReaderFactory
+	StreamWriterFactory StreamWriterFactory
 }
 
-func NewEventStore(basePath string, writerFactory EventWriterFactory, readerFactory EventReaderFactory, streamWriterFactory StreamWriterFactory) EventStore {
+func NewEventStore(
+	basePath string,
+	writerFactory EventWriterFactory,
+	readerFactory EventReaderFactory,
+	streamWriterFactory StreamWriterFactory,
+	streamReaderFactory StreamReaderFactory,
+) EventStore {
 	writer := writerFactory(basePath)
 	writerChan := make(chan domain.Event, 0)
 	writerResultChan := make(chan WriteResult, 0)
@@ -44,11 +53,13 @@ func NewEventStore(basePath string, writerFactory EventWriterFactory, readerFact
 	}()
 
 	return EventStore{
-		BasePath:         basePath,
-		Writer:           writer,
-		WriterChan:       writerChan,
-		WriterResultChan: writerResultChan,
-		ReaderFactory:    readerFactory,
+		BasePath:            basePath,
+		Writer:              writer,
+		WriterChan:          writerChan,
+		WriterResultChan:    writerResultChan,
+		ReaderFactory:       readerFactory,
+		StreamWriterFactory: streamWriterFactory,
+		StreamReaderFactory: streamReaderFactory,
 	}
 }
 
@@ -61,4 +72,14 @@ func (es *EventStore) WriteEvent(event domain.Event) (int64, error) {
 func (es *EventStore) ReadEvent(eventID ulid.ULID) (*domain.Event, error) {
 	reader := es.ReaderFactory(es.BasePath)
 	return reader.ReadEvent(eventID)
+}
+
+func (es *EventStore) LinkToStream(streamName string, eventID ulid.ULID) error {
+	writer := es.StreamWriterFactory(es.BasePath)
+	return writer.LinkEvent(streamName, eventID)
+}
+
+func (es *EventStore) ReadStream(streamName string) (*domain.Stream, error) {
+	reader := es.StreamReaderFactory(es.BasePath)
+	return reader.ReadStream(streamName)
 }

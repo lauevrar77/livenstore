@@ -19,8 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Livenstore_Publish_FullMethodName   = "/livenstore_grpc.Livenstore/Publish"
-	Livenstore_EventByID_FullMethodName = "/livenstore_grpc.Livenstore/EventByID"
+	Livenstore_Publish_FullMethodName           = "/livenstore_grpc.Livenstore/Publish"
+	Livenstore_EventByID_FullMethodName         = "/livenstore_grpc.Livenstore/EventByID"
+	Livenstore_LinkEventToStream_FullMethodName = "/livenstore_grpc.Livenstore/LinkEventToStream"
+	Livenstore_ReadStream_FullMethodName        = "/livenstore_grpc.Livenstore/ReadStream"
 )
 
 // LivenstoreClient is the client API for Livenstore service.
@@ -29,6 +31,8 @@ const (
 type LivenstoreClient interface {
 	Publish(ctx context.Context, in *PublishEventRequest, opts ...grpc.CallOption) (*PublishEventReply, error)
 	EventByID(ctx context.Context, in *EventByIDRequest, opts ...grpc.CallOption) (*EventResponse, error)
+	LinkEventToStream(ctx context.Context, in *LinkEventToStreamRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	ReadStream(ctx context.Context, in *ReadStreamRequest, opts ...grpc.CallOption) (*Stream, error)
 }
 
 type livenstoreClient struct {
@@ -59,12 +63,34 @@ func (c *livenstoreClient) EventByID(ctx context.Context, in *EventByIDRequest, 
 	return out, nil
 }
 
+func (c *livenstoreClient) LinkEventToStream(ctx context.Context, in *LinkEventToStreamRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, Livenstore_LinkEventToStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *livenstoreClient) ReadStream(ctx context.Context, in *ReadStreamRequest, opts ...grpc.CallOption) (*Stream, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Stream)
+	err := c.cc.Invoke(ctx, Livenstore_ReadStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LivenstoreServer is the server API for Livenstore service.
 // All implementations must embed UnimplementedLivenstoreServer
 // for forward compatibility.
 type LivenstoreServer interface {
 	Publish(context.Context, *PublishEventRequest) (*PublishEventReply, error)
 	EventByID(context.Context, *EventByIDRequest) (*EventResponse, error)
+	LinkEventToStream(context.Context, *LinkEventToStreamRequest) (*EmptyResponse, error)
+	ReadStream(context.Context, *ReadStreamRequest) (*Stream, error)
 	mustEmbedUnimplementedLivenstoreServer()
 }
 
@@ -80,6 +106,12 @@ func (UnimplementedLivenstoreServer) Publish(context.Context, *PublishEventReque
 }
 func (UnimplementedLivenstoreServer) EventByID(context.Context, *EventByIDRequest) (*EventResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EventByID not implemented")
+}
+func (UnimplementedLivenstoreServer) LinkEventToStream(context.Context, *LinkEventToStreamRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LinkEventToStream not implemented")
+}
+func (UnimplementedLivenstoreServer) ReadStream(context.Context, *ReadStreamRequest) (*Stream, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReadStream not implemented")
 }
 func (UnimplementedLivenstoreServer) mustEmbedUnimplementedLivenstoreServer() {}
 func (UnimplementedLivenstoreServer) testEmbeddedByValue()                    {}
@@ -138,6 +170,42 @@ func _Livenstore_EventByID_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Livenstore_LinkEventToStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LinkEventToStreamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LivenstoreServer).LinkEventToStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Livenstore_LinkEventToStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LivenstoreServer).LinkEventToStream(ctx, req.(*LinkEventToStreamRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Livenstore_ReadStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadStreamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LivenstoreServer).ReadStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Livenstore_ReadStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LivenstoreServer).ReadStream(ctx, req.(*ReadStreamRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Livenstore_ServiceDesc is the grpc.ServiceDesc for Livenstore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +220,14 @@ var Livenstore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EventByID",
 			Handler:    _Livenstore_EventByID_Handler,
+		},
+		{
+			MethodName: "LinkEventToStream",
+			Handler:    _Livenstore_LinkEventToStream_Handler,
+		},
+		{
+			MethodName: "ReadStream",
+			Handler:    _Livenstore_ReadStream_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

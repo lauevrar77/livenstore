@@ -47,3 +47,30 @@ func (s *Server) EventByID(c context.Context, req *EventByIDRequest) (*EventResp
 		},
 	}, nil
 }
+
+func (s *Server) LinkEventToStream(c context.Context, req *LinkEventToStreamRequest) (*EmptyResponse, error) {
+	ulid, err := ulid.Parse(req.EventId)
+	if err != nil {
+		return nil, err
+	}
+	err = s.ES.LinkToStream(req.StreamName, ulid)
+	if err != nil {
+		return nil, err
+	}
+	return &EmptyResponse{}, nil
+}
+
+func (s *Server) ReadStream(c context.Context, req *ReadStreamRequest) (*Stream, error) {
+	stream, err := s.ES.ReadStream(req.StreamName)
+	if err != nil {
+		return nil, err
+	}
+	eventIDs := make([]string, len(stream.EventIDs))
+	for i, id := range stream.EventIDs {
+		eventIDs[i] = id.String()
+	}
+	return &Stream{
+		Name:     stream.Name,
+		EventIds: eventIDs,
+	}, nil
+}

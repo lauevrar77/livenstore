@@ -12,7 +12,13 @@ import (
 )
 
 func main() {
-	es := services.NewEventStore("data", persistance.NewEventWriter, persistance.NewEventReader, persistance.NewStreamWriter)
+	es := services.NewEventStore(
+		"data",
+		persistance.NewEventWriter,
+		persistance.NewEventReader,
+		persistance.NewStreamWriter,
+		persistance.NewStreamReader,
+	)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 5001))
 	if err != nil {
