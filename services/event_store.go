@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+
 	"github.com/oklog/ulid/v2"
 	"livenstore.evrard.online/domain"
 	"livenstore.evrard.online/persistance"
@@ -8,6 +10,7 @@ import (
 
 type EventWriterFactory func(string) persistance.EventWriter
 type EventReaderFactory func(string) persistance.EventReader
+type StreamWriterFactory func(string) persistance.StreamWriter
 
 type WriteResult struct {
 	Offset int64
@@ -22,14 +25,20 @@ type EventStore struct {
 	ReaderFactory    EventReaderFactory
 }
 
-func NewEventStore(basePath string, writerFactory EventWriterFactory, readerFactory EventReaderFactory) EventStore {
+func NewEventStore(basePath string, writerFactory EventWriterFactory, readerFactory EventReaderFactory, streamWriterFactory StreamWriterFactory) EventStore {
 	writer := writerFactory(basePath)
 	writerChan := make(chan domain.Event, 0)
 	writerResultChan := make(chan WriteResult, 0)
 
+	streamWriter := streamWriterFactory(basePath)
+
 	go func() {
 		for event := range writerChan {
 			offset, err := writer.WriteEvent(event)
+			if err != nil {
+				writerResultChan <- WriteResult{Offset: offset, Error: err}
+			}
+			err = streamWriter.LinkEvent(fmt.Sprintf("by_event_type_%s", event.Type), event.ID)
 			writerResultChan <- WriteResult{Offset: offset, Error: err}
 		}
 	}()
