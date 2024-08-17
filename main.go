@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	pb "livenstore.evrard.online/livenstore_grpc"
 	"livenstore.evrard.online/persistance"
 	"livenstore.evrard.online/services"
@@ -29,5 +30,6 @@ func main() {
 	pb.RegisterLivenstoreServer(grpcServer, &pb.Server{
 		ES: es,
 	})
+	reflection.Register(grpcServer)
 	grpcServer.Serve(lis)
 }
