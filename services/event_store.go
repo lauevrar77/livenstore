@@ -63,13 +63,13 @@ func NewEventStore(
 	}
 }
 
-func (es *EventStore) WriteEvent(event domain.Event) (int64, error) {
+func (es *EventStore) PublishEvent(event domain.Event) (int64, error) {
 	es.WriterChan <- event
 	result := <-es.WriterResultChan
 	return result.Offset, result.Error
 }
 
-func (es *EventStore) ReadEvent(eventID ulid.ULID) (*domain.Event, error) {
+func (es *EventStore) EventByID(eventID ulid.ULID) (*domain.Event, error) {
 	reader := es.ReaderFactory(es.BasePath)
 	return reader.ReadEvent(eventID)
 }

@@ -22,7 +22,7 @@ func (s *Server) Publish(c context.Context, req *PublishEventRequest) (*PublishE
 		Timestamp: uint64(time.Now().Unix()),
 		Data:      req.Data,
 	}
-	_, err := s.ES.WriteEvent(e)
+	_, err := s.ES.PublishEvent(e)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (s *Server) EventByID(c context.Context, req *EventByIDRequest) (*EventResp
 	if err != nil {
 		return nil, err
 	}
-	e, err := s.ES.ReadEvent(ulid)
+	e, err := s.ES.EventByID(ulid)
 	if err != nil {
 		return nil, err
 	}
