@@ -25,7 +25,7 @@ type EventStore struct {
 	WriterResultChan    chan WriteResult
 	ReaderFactory       EventReaderFactory
 	StreamReaderFactory StreamReaderFactory
-	StreamWriterFactory StreamWriterFactory
+	StreamWriter        *SafeStreamWriter
 }
 
 func NewEventStore(
@@ -39,7 +39,11 @@ func NewEventStore(
 	writerChan := make(chan domain.Event, 0)
 	writerResultChan := make(chan WriteResult, 0)
 
-	streamWriter := streamWriterFactory(basePath)
+	safeStreamWriter := &SafeStreamWriter{
+		BasePath:      basePath,
+		WriterFactory: streamWriterFactory,
+		Writers:       make(map[string]StreamWriterContext),
+	}
 
 	go func() {
 		for event := range writerChan {
@@ -47,7 +51,7 @@ func NewEventStore(
 			if err != nil {
 				writerResultChan <- WriteResult{Offset: offset, Error: err}
 			}
-			err = streamWriter.LinkEvent(fmt.Sprintf("by_event_type_%s", event.Type), event.ID)
+			err = safeStreamWriter.LinkEvent(fmt.Sprintf("by_event_type_%s", event.Type), event.ID)
 			writerResultChan <- WriteResult{Offset: offset, Error: err}
 		}
 	}()
@@ -58,8 +62,8 @@ func NewEventStore(
 		WriterChan:          writerChan,
 		WriterResultChan:    writerResultChan,
 		ReaderFactory:       readerFactory,
-		StreamWriterFactory: streamWriterFactory,
 		StreamReaderFactory: streamReaderFactory,
+		StreamWriter:        safeStreamWriter,
 	}
 }
 
@@ -75,8 +79,7 @@ func (es *EventStore) EventByID(eventID ulid.ULID) (*domain.Event, error) {
 }
 
 func (es *EventStore) LinkToStream(streamName string, eventID ulid.ULID) error {
-	writer := es.StreamWriterFactory(es.BasePath)
-	return writer.LinkEvent(streamName, eventID)
+	return es.StreamWriter.LinkEvent(streamName, eventID)
 }
 
 func (es *EventStore) ReadStream(streamName string) (*domain.Stream, error) {
