@@ -13,6 +13,7 @@ import (
 )
 
 var TEST_SIZE = 1_000_000
+var NB_STREAMS = 300
 
 func main() {
 	es := services.NewEventStore(
@@ -23,11 +24,16 @@ func main() {
 		persistance.NewStreamReader,
 	)
 
+	streamNames := make([]string, NB_STREAMS)
+	for i := 0; i < NB_STREAMS; i++ {
+		streamNames[i] = bench.RandomString(10)
+	}
+
 	times := make([]int64, TEST_SIZE)
 	for i := 0; i < TEST_SIZE; i++ {
 		e := domain.Event{
 			ID:        ulid.Make(),
-			Type:      bench.RandomString(10),
+			Type:      bench.SampleElement(streamNames),
 			Timestamp: uint64(time.Now().Unix()),
 			Data:      bench.RandomBytes(100),
 		}
@@ -38,7 +44,7 @@ func main() {
 		times[i] = after - before
 	}
 
-	timesJson, err := json.Marshal(times)
+	timesJson, err := json.Marshal(bench.ComputeStats(times))
 	if err != nil {
 		panic(err)
 	}

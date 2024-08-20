@@ -2,9 +2,13 @@ package services
 
 import (
 	"sync"
+	"time"
 
 	"github.com/oklog/ulid/v2"
+	"livenstore.evrard.online/persistance"
 )
+
+var MAX_STREAM_WRITERS = 1000
 
 type LinkEvent struct {
 	StreamName string
@@ -12,8 +16,9 @@ type LinkEvent struct {
 }
 
 type StreamWriterContext struct {
-	InputChan  chan LinkEvent
-	OutputChan chan error
+	InputChan          chan LinkEvent
+	OutputChan         chan error
+	LastEventTimestamp int64
 }
 
 type SafeStreamWriter struct {
@@ -29,17 +34,32 @@ func (sw *SafeStreamWriter) LinkEvent(streamName string, eventID ulid.ULID) erro
 	sw.mut.Lock()
 	if writerContext, ok = sw.Writers[streamName]; !ok {
 		writerContext = StreamWriterContext{
-			InputChan:  make(chan LinkEvent, 0),
-			OutputChan: make(chan error, 0),
+			InputChan:          make(chan LinkEvent, 0),
+			OutputChan:         make(chan error, 0),
+			LastEventTimestamp: time.Now().UnixMicro(),
 		}
 		sw.Writers[streamName] = writerContext
 		writer := sw.WriterFactory(sw.BasePath)
-		go func() {
-			for event := range sw.Writers[streamName].InputChan {
+		go func(inputChan chan LinkEvent, writer persistance.StreamWriter, outputChan chan error) {
+			for event := range inputChan {
 				err := writer.LinkEvent(event.StreamName, event.EventID)
-				sw.Writers[streamName].OutputChan <- err
+				outputChan <- err
 			}
-		}()
+		}(writerContext.InputChan, writer, writerContext.OutputChan)
+
+		// Cleaning up the oldest stream writer if we have too many
+		if len(sw.Writers) > MAX_STREAM_WRITERS {
+			oldestTimestamp := time.Now().UnixMicro()
+			oldestStreamName := ""
+			for streamName, writerContext := range sw.Writers {
+				if writerContext.LastEventTimestamp < oldestTimestamp {
+					oldestTimestamp = writerContext.LastEventTimestamp
+					oldestStreamName = streamName
+				}
+			}
+			close(sw.Writers[oldestStreamName].InputChan)
+			delete(sw.Writers, oldestStreamName)
+		}
 	}
 	sw.mut.Unlock()
 
